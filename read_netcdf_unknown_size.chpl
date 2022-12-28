@@ -81,8 +81,8 @@ proc readData(ncid, u_varid, u_in) {
 
 proc main (args: [] string) {
 
-  var filename = args[1].c_str();
-  var varName = args[2].c_str();
+  var filename = args[1];
+  var varName = args[2];
 
   var ncid : c_int;
   var varid : c_int;
@@ -92,13 +92,13 @@ proc main (args: [] string) {
   // Open the file
   // (1)  int nc_open(const char* path, int mode,     int* ncidp)
   extern proc nc_open(path : c_string, mode : c_int, ncidp : c_ptr(c_int)) : c_int;
-  nc_open(filename, NC_NOWRITE, c_ptrTo(ncid));
+  nc_open(filename.c_str(), NC_NOWRITE, c_ptrTo(ncid));
 
   // Get the variable ID
   //
   //      int nc_inq_varid(int ncid,    const char* name,      int* varidp)
   extern proc nc_inq_varid(ncid: c_int, varName: c_string, varid: c_ptr(c_int));
-  nc_inq_varid(ncid, varName, c_ptrTo(varid));
+  nc_inq_varid(ncid, varName.c_str(), c_ptrTo(varid));
 
   writeln("varid: ", varid);
 
@@ -128,10 +128,7 @@ proc main (args: [] string) {
 
   // Get the size of each dimension
   //
-  //         int nc_inq_dimlen(int ncid,     int dimid,     size_t* lenp)
-  // extern proc nc_inq_dimlen(ncid : c_int, dimid : c_int, ref lenp : c_size_t) : c_int;
-  ////extern proc nc_inq_dimlen(ncid: c_int, dimid: c_int, lenp);
-  //
+  //      int nc_inq_dimlen(int ncid,     int dimid,     size_t* lenp)
   extern proc nc_inq_dimlen(ncid : c_int, dimid : c_int, lenp : c_ptr(c_size_t)) : c_int;
   for i in 0..#ndims do {
     nc_inq_dimlen(ncid, dimids[i], c_ptrTo(dimlens[i]));
