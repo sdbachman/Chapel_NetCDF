@@ -14,26 +14,17 @@ inline proc tuplify(x) {
 }
 
 proc CreateDomain(param numDims, indicesArr) {
-  if numDims == 1 {
-    var dom_in = {0..#indicesArr[0]};
-    return dom_in;
-  } else if numDims == 2 {
-    var dom_in = {0..#indicesArr[0], 0..#indicesArr[1]};
-    return dom_in;
-  } else if numDims == 3 {
-    var dom_in = {0..#indicesArr[0], 0..#indicesArr[1], 0..#indicesArr[2]};
-    return dom_in;
-  } else if numDims == 4 {
-    var dom_in = {0..#indicesArr[0], 0..#indicesArr[1], 0..#indicesArr[2], 0..#indicesArr[3]};
-    return dom_in;
-  }
+  var indices: numDims*range;
+  for param i in 0..<numDims do
+    indices[i] = 0..#indicesArr[i];
+  return {(...indices)};
 }
 
 
 proc DistributedRead(const filename, varid, dom_in) {
 
       const D = dom_in dmapped Block (dom_in);
-      var dist_array : [D] real(32);
+      var dist_array : [D] real(64);
 
       var t : Timer;
       t.start();
@@ -42,7 +33,7 @@ proc DistributedRead(const filename, varid, dom_in) {
         writeln("Local subdomain on Locale ", here.id, ": \n", D.localSubdomain());
 
         /* Some external procedure declarations */
-          extern proc nc_get_vara_float(ncid : c_int, varid : c_int, startp : c_ptr(c_size_t), countp : c_ptr(c_size_t), ip : c_ptr(real(32))) : c_int;
+          extern proc nc_get_vara_double(ncid : c_int, varid : c_int, startp : c_ptr(c_size_t), countp : c_ptr(c_size_t), ip : c_ptr(real(64))) : c_int;
 
 
         /* Determine where to start reading file, and how many elements to read */
@@ -60,7 +51,7 @@ proc DistributedRead(const filename, varid, dom_in) {
 
           writeln("URL on Locale ", here.id, ": ", filename);
 
-          nc_get_vara_float(ncid, varid, c_ptrTo(start_c), c_ptrTo(count_c), c_ptrTo(dist_array[start]));
+          nc_get_vara_double(ncid, varid, c_ptrTo(start_c), c_ptrTo(count_c), c_ptrTo(dist_array[start]));
 
           writeln("On locale ", here.id, " with start: ", start, ", and count:", count, ",\n", dist_array[dist_array.localSubdomain()]);
           writeln("On locale ", here.id, " read finished in ", t.elapsed(), " seconds.");
@@ -136,21 +127,12 @@ t.start();
 
 // Create the array to hold the data
 
-        
-        if dimlens.size == 1 {
-          var dom_in = CreateDomain(1, dimlens);  // these needs to be a param value in here (so can't use runtime-known value
-          var var_dist = DistributedRead(filename, varid, dom_in);}
-        else if dimlens.size == 2 then {
-          var dom_in = CreateDomain(2, dimlens);
-          var var_dist = DistributedRead(filename, varid, dom_in);}
-        else if dimlens.size == 3 then {
-          var dom_in = CreateDomain(3, dimlens);
-          var var_dist = DistributedRead(filename, varid, dom_in);}
-        else if dimlens.size == 4 then {
-          var dom_in = CreateDomain(4, dimlens);
-          var var_dist = DistributedRead(filename, varid, dom_in);}
-        //else { 
-          //compilerError("Can't yet handle " + dimlens.size:string + " dimensions."); }
+for param p in 1..10 {
+  if ndims == p {
+    var dom_in = CreateDomain(p, dimlens);
+    var var_dist = DistributedRead(filename, varid, dom_in);
+  }
+}
 
 writeln("Took ", t.elapsed(), " seconds to do the distributed read.");
 }
